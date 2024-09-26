@@ -84,4 +84,7 @@ public class AlarmBot {
     private Integer triggerType;
     
     private Integer alarmType;
+
+    //下一个触发时间
+    private Long nextTriggerTime;
 }

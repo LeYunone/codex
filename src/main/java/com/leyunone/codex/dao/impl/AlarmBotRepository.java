@@ -10,6 +10,8 @@ import com.leyunone.codex.dao.mapper.AlarmBotMapper;
 import com.leyunone.codex.model.query.BotQuery;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * :)
  *
@@ -22,6 +24,13 @@ public class AlarmBotRepository extends BaseRepository<AlarmBotMapper, AlarmBot>
     public void deleteAll() {
         LambdaQueryWrapper<AlarmBot> lambda = new QueryWrapper<AlarmBot>().lambda();
         this.baseMapper.delete(lambda);
+    }
+
+    public List<AlarmBot> selectIntervalTimeBot(Long startTime, Long endTime) {
+        LambdaQueryWrapper<AlarmBot> lambda = new QueryWrapper<AlarmBot>().lambda();
+        lambda.gt(AlarmBot::getNextTriggerTime, startTime);
+        lambda.le(AlarmBot::getNextTriggerTime, endTime);
+        return this.baseMapper.selectList(lambda);
     }
 
     public Page<AlarmBot> selectPage(BotQuery query) {
