@@ -14,6 +14,7 @@ import com.leyunone.codex.model.dto.AlarmBotDTO;
 import com.leyunone.codex.model.query.BotQuery;
 import com.leyunone.codex.model.vo.AlarmBotVO;
 import com.leyunone.codex.util.AssertUtil;
+import com.leyunone.codex.util.JobScheduleUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,8 +37,8 @@ public class BotService {
 
     @Autowired
     private AlarmBotRepository alarmBotRepository;
-    @Autowired
-    private XxlJobService xxlJobService;
+//    @Autowired
+//    private XxlJobService xxlJobService;
 
     @Transactional(rollbackFor = Exception.class)
     public void saveBot(AlarmBotDTO bot) {
@@ -76,25 +77,19 @@ public class BotService {
         alarmBot.setContent(bot.getContent());
         alarmBot.setCron(bot.getCron());
         alarmBot.setTriggerType(bot.getTriggerType());
-        alarmBot.setStatus(bot.isStatus());
+        alarmBot.setStatus(bot.isStatus() ? 1 : 0);
         alarmBot.setAlarmType(bot.getAlarmType());
-
+        if (StringUtils.isNotBlank(bot.getCron())) {
+            alarmBot.setNextTriggerTime(JobScheduleUtil.generateNextValidTime(bot.getCron()));
+        }
         if (ObjectUtil.isNotNull(alarmBot.getId())) {
-            //更新
-            AlarmBot current = alarmBotRepository.selectById(alarmBot.getId());
-            jobInfo.setId(current.getXxlJobId());
-            jobInfo.setJobParam(current.getId());
-            xxlJobService.updateJob(jobInfo);
+//            xxlJobService.updateJob(jobInfo);
             alarmBotRepository.updateNull(alarmBot.getId());
         } else {
             //新增
             alarmBot.setId(UUID.randomUUID().toString());
             alarmBot.setCreateTime(LocalDateTime.now());
-            jobInfo.setJobParam(alarmBot.getId());
-            String s = xxlJobService.addJob(jobInfo);
-            if(StringUtils.isNotBlank(s)) {
-                alarmBot.setXxlJobId(Integer.parseInt(s));
-            }
+//            String s = xxlJobService.addJob(jobInfo);
         }
         alarmBotRepository.saveOrUpdate(alarmBot);
     }
@@ -120,7 +115,7 @@ public class BotService {
                 alarmBot.setCron(bot.getCron());
                 alarmBot.setTriggerType(bot.getTriggerType());
                 alarmBot.setAlarmType(bot.getAlarmType());
-                alarmBot.setStatus(bot.isStatus());
+                alarmBot.setStatus(bot.getStatus() == 1);
             } catch (Exception e) {
                 return null;
             }
@@ -133,19 +128,23 @@ public class BotService {
     public void chanceStatus(String id, boolean status) {
         AlarmBot alarmBot = alarmBotRepository.selectById(id);
         AssertUtil.isFalse(ObjectUtil.isNull(alarmBot), ResponseCode.BOT_NOT_EXIST);
-        if (status) {
-            xxlJobService.startJob(String.valueOf(alarmBot.getXxlJobId()));
-        } else {
-            xxlJobService.pauseJob(String.valueOf(alarmBot.getXxlJobId()));
+//        if (status) {
+//            xxlJobService.startJob(String.valueOf(alarmBot.getXxlJobId()));
+//        } else {
+//            xxlJobService.pauseJob(String.valueOf(alarmBot.getXxlJobId()));
+//        }
+        if (status && StringUtils.isNotBlank(alarmBot.getCron())) {
+            //启动
+            alarmBot.setNextTriggerTime(JobScheduleUtil.generateNextValidTime(alarmBot.getCron()));
         }
-        alarmBot.setStatus(status);
+        alarmBot.setStatus(status ? 1 : 0);
         alarmBotRepository.updateById(alarmBot);
     }
 
     public void deleteBot(String id) {
         AlarmBot alarmBot = alarmBotRepository.selectById(id);
         AssertUtil.isFalse(ObjectUtil.isNull(alarmBot), ResponseCode.BOT_NOT_EXIST);
-        xxlJobService.removeJob(String.valueOf(alarmBot.getXxlJobId()));
+//        xxlJobService.removeJob(String.valueOf(alarmBot.getXxlJobId()));
         alarmBotRepository.deleteById(id);
     }
 }

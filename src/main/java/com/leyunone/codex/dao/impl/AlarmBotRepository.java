@@ -28,8 +28,9 @@ public class AlarmBotRepository extends BaseRepository<AlarmBotMapper, AlarmBot>
 
     public List<AlarmBot> selectIntervalTimeBot(Long startTime, Long endTime) {
         LambdaQueryWrapper<AlarmBot> lambda = new QueryWrapper<AlarmBot>().lambda();
-        lambda.gt(AlarmBot::getNextTriggerTime, startTime);
+//        lambda.gt(AlarmBot::getNextTriggerTime, startTime);
         lambda.le(AlarmBot::getNextTriggerTime, endTime);
+        lambda.eq(AlarmBot::getStatus,1);
         return this.baseMapper.selectList(lambda);
     }
 
@@ -48,6 +49,7 @@ public class AlarmBotRepository extends BaseRepository<AlarmBotMapper, AlarmBot>
         lambda.set(AlarmBot::getBugCountCondition, null);
         lambda.set(AlarmBot::getBugRateCondition, null);
         lambda.set(AlarmBot::getAlarmObject, null);
+        lambda.set(AlarmBot::getNextTriggerTime,null);
         lambda.eq(AlarmBot::getId, id);
         this.baseMapper.update(null, lambda);
     }

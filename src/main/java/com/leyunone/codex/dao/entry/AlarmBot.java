@@ -75,9 +75,7 @@ public class AlarmBot {
     /**
      * 0暂停 1启动
      */
-    private boolean status;
-    
-    private Integer xxlJobId;
+    private Integer status;
     
     private LocalDateTime createTime;
     

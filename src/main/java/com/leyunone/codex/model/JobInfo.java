@@ -49,11 +49,6 @@ public class JobInfo {
 	private String scheduleTime;
 
 	/**
-	 * 执行器，任务参数
-	 */
-	private String jobParam;
-
-	/**
 	 * 调度状态：0-停止，1-运行
 	 */
 	private int status;
