@@ -37,6 +37,8 @@ public class BugQuery extends PageCommonQuery{
     
     private String status;
 
+    private Integer size;
+
     /**
      * 0人员 1部门 2项目
      */
