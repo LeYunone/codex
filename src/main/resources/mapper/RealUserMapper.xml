@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leyunone.codex.dao.mapper.RealUserMapper">
+    <select id="selectCodeUser" resultType="com.leyunone.codex.dao.entry.RealUser">
+        SELECT u.real_user_id, real_user_name, real_email,g.group_name FROM x_real_user u LEFT JOIN x_group_user gu ON
+        u.real_user_id = gu.real_user_id LEFt JOIN x_group g ON gu.group_id = g.group_id
+        WHERE 1 = 1
+        <if test="con.realUserName!=null and con.realUserName!=''">
+            AND u.real_user_name LIKE CONCAT('%',#{con.realUserName},'%')
+        </if>
+        <if test="con.realUserId!=null">
+            AND u.real_user_id = #{con.realUserId}
+        </if>
+        <if test="con.groupId!=null">
+            AND gu.group_id = #{con.groupId}
+        </if>
+        ORDER BY u.real_user_id
+    </select>
+</mapper>

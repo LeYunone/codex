@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leyunone.codex.dao.mapper.GroupMapper">
+    <select id="selectGroupUser" resultType="com.leyunone.codex.dao.entry.Group">
+        SELECT u.real_user_name,gu.group_id,u.real_user_id,g.group_name
+        FROM x_group_user gu
+                 LEFT JOIN x_real_user u ON gu.real_user_id = u.real_user_id
+                 LEFT JOIN x_group g ON gu.group_id = g.group_id 
+        WHERE gu.group_id IN
+        <foreach item="item" index="index" collection="groupIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

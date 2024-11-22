@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leyunone.codex.dao.mapper.CommitMapper">
+    <insert id="batchInsert">
+        INSERT INTO x_commit
+        (commit_id,user_id,commit_date,committer_email,user_name,title,project_id,message,additions,deletions,total,storage_id,branches_name)
+        VALUES
+        <foreach collection="commits" item="item" separator=",">
+            (#{item.commitId},#{item.userId},#{item.commitDate},#{item.committerEmail},#{item.userName},#{item.title},#{item.projectId},#{item.message}
+            ,#{item.additions},#{item.deletions},#{item.total},#{item.storageId},#{item.branchesName})
+        </foreach>
+        ON DUPLICATE key update
+        commit_id = values(commit_id),
+        user_id = values(user_id),
+        commit_date = values(commit_date),
+        committer_email = values(committer_email),
+        user_name = values(user_name),
+        title = values(title),
+        project_id = values(project_id),
+        message = values (message),
+        additions = values(additions),
+        deletions = values(deletions),
+        total = values(total),
+        storage_id = values(storage_id),
+        branches_name = values(branches_name)
+    </insert>
+
+    <select id="selectLastDate" resultType="date">
+        SELECT Max(commit_date)
+        FROM x_commit
+        where storage_id = #{storageId}
+    </select>
+
+    <select id="selectProjectCodeGroupUser" resultType="com.leyunone.codex.model.vo.CommitVO">
+        select
+        DATE_FORMAT(t1.date,'%Y-%m-%d') as date,t2.user_id,t2.real_user_name, t2.user_name,
+        t2.total,t2.addition,t2.deletions
+        from
+        (
+        select
+        @cdate := date_add(@cdate, INTERVAL -1 DAY) as date
+        from
+        (
+        select
+        @cdate := date_add(#{con.endDate}, INTERVAL +1 DAY)
+        from
+        x_system
+        ) tmp1
+        where
+        date_add(@cdate, INTERVAL -1 DAY) &gt;= #{con.startDate} and date_add(@cdate, INTERVAL -1 DAY) &lt;=
+        #{con.endDate}
+        ) t1
+        left join (
+        SELECT c.user_name,c.user_id,u.real_user_name,sum(total) total,sum(additions) addition,sum(deletions)
+        deletions,DATE_FORMAT(commit_date, '%Y-%m-%d') AS date FROM `x_commit` c LEFT JOIN x_user u ON c.user_id =
+        u.user_id
+        WHERE 1 = 1
+        <if test="con.limit!=null">
+            AND total &lt;= #{con.limit}
+        </if>
+        <if test="con.startDate!=null">
+            AND commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null">
+            AND commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND project_id = #{con.projectId}
+        </if>
+        <if test="con.userId!=null and con.userId!=''">
+            AND c.user_id = #{con.userId}
+        </if>
+        <if test="con.userIds!=null">
+            AND c.user_id IN
+            <foreach item="item" index="index" collection="con.userIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        group by user_id,user_name,DATE_FORMAT(commit_date,'%Y-%m-%d')
+        ) t2
+        on t1.date = STR_TO_DATE(t2.date, '%Y-%m-%d')
+        order by date asc
+    </select>
+
+    <select id="selectProjectCodeGroupUserMonth" resultType="com.leyunone.codex.model.vo.CommitVO">
+        select
+        t1.date,t2.user_id, t2.user_name,t2.real_user_name, t2.total,t2.addition,t2.deletions
+        from
+        (
+        select
+        DATE_FORMAT(@cdate := date_add( @cdate, INTERVAL - 1 DAY ) ,'%Y-%m') AS date
+        from
+        (
+        select
+        @cdate := date_add(#{con.endDate}, INTERVAL +1 DAY)
+        from
+        x_system
+        ) tmp1
+        where
+        date_add(@cdate, INTERVAL -1 DAY) &gt;= #{con.startDate} and date_add(@cdate, INTERVAL -1 DAY) &lt;=
+        #{con.endDate}
+        group by date
+        ) t1
+        left join (
+        SELECT c.user_name,c.user_id,u.real_user_name,sum(total) total,sum(additions) addition,sum(deletions)
+        deletions,DATE_FORMAT(commit_date, '%Y-%m') AS date FROM `x_commit` c LEFT JOIN x_user u ON c.user_id = u.user_id
+        WHERE 1 = 1
+        <if test="con.limit!=null">
+            AND total &lt;= #{con.limit}
+        </if>
+        <if test="con.startDate!=null">
+            AND commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null">
+            AND commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND project_id = #{con.projectId}
+        </if>
+        <if test="con.userId!=null and con.userId!=''">
+            AND c.user_id = #{con.userId}
+        </if>
+        <if test="con.userIds!=null">
+            AND c.user_id IN
+            <foreach item="item" index="index" collection="con.userIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        group by user_id,user_name,DATE_FORMAT(commit_date,'%Y-%m')
+        ) t2
+        on t2.date = t1.date
+        order by date asc
+    </select>
+
+    <select id="preDate" resultType="string">
+        SELECT @cdate := date_add(@cdate, INTERVAL - 1 DAY) AS date
+        FROM (SELECT @cdate := date_add(#{date}, INTERVAL + 1 DAY) FROM x_system) tmp1
+    </select>
+    <select id="selectSumGroupUser" resultType="com.leyunone.codex.model.vo.UserVO">
+        SELECT t.user_name, t.code_total
+        FROM (SELECT user_name, SUM(total) code_total
+              FROM x_commit
+              WHERE commit_date >= #{startDate}
+                AND commit_date &lt;= #{endDate}
+              GROUP BY user_name) t
+        ORDER BY t.code_total
+    </select>
+
+    <select id="selectByUser" resultType="com.leyunone.codex.model.vo.UserVO">
+        SELECT
+        u.real_user_name,
+        u.user_name,
+        c.user_id,
+        SUM(additions) code_additions,
+        SUM(deletions) code_deletions,
+        COUNT(1) count,
+        SUM(total) code_total FROM x_commit c
+        LEFT JOIN x_user u ON c.user_id = u.user_id
+        WHERE 1 = 1
+        <if test="con.limit!=null">
+            AND total &lt;= #{con.limit}
+        </if>
+        <if test="con.realUserNames !=null and con.realUserNames.size()>0">
+            AND u.real_user_name IN
+            <foreach item="item" index="index" collection="con.realUserNames" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="con.startDate!=null and con.startDate!=''">
+            AND commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.userId!=null and con.userId!=''">
+            AND c.user_id = #{con.userId}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND project_id = #{con.projectId}
+        </if>
+        <if test="con.userIds !=null and con.userIds.size()>0">
+            AND c.user_id IN
+            <foreach item="item" index="index" collection="con.userIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY user_id
+    </select>
+
+    <select id="selectProjectTimeCode" resultType="com.leyunone.codex.model.vo.CommitVO">
+        select
+        DATE_FORMAT(t1.date,'%Y-%m-%d') as date,t2.total,t2.addition,t2.deletions
+        from
+        (
+        select
+        @cdate := date_add(@cdate, INTERVAL -1 DAY) as date
+        from
+        (
+        select
+        @cdate := date_add(#{con.endDate}, INTERVAL +1 DAY)
+        from
+        x_system
+        ) tmp1
+        where
+        date_add(@cdate, INTERVAL -1 DAY) &gt;= #{con.startDate} and date_add(@cdate, INTERVAL -1 DAY) &lt;=
+        #{con.endDate}
+        ) t1
+        left join (
+        SELECT sum(total) total,sum(additions) addition,sum(deletions) deletions,DATE_FORMAT(commit_date, '%Y-%m-%d') AS
+        date FROM `x_commit`
+        WHERE 1 = 1
+        <if test="con.limit!=null">
+            AND total &lt;= #{con.limit}
+        </if>
+        <if test="con.startDate!=null">
+            AND commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null">
+            AND commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND project_id = #{con.projectId}
+        </if>
+        group by DATE_FORMAT(commit_date,'%Y-%m-%d')
+        ) t2
+        on t1.date = STR_TO_DATE(t2.date, '%Y-%m-%d')
+        order by date asc
+    </select>
+
+    <select id="selectProjectTimeCodeMonth" resultType="com.leyunone.codex.model.vo.CommitVO">
+        select
+        t1.date,t2.total,t2.addition,t2.deletions
+        from
+        (
+        select
+        DATE_FORMAT(@cdate := date_add( @cdate, INTERVAL - 1 DAY ) ,'%Y-%m') AS date
+        from
+        (
+        select
+        @cdate := date_add(#{con.endDate}, INTERVAL +1 DAY)
+        from
+        x_system
+        ) tmp1
+        where
+        date_add(@cdate, INTERVAL -1 DAY) &gt;= #{con.startDate} and date_add(@cdate, INTERVAL -1 DAY) &lt;=
+        #{con.endDate}
+        group by date
+        ) t1
+        left join (
+        SELECT sum(total) total,,sum(additions) addition,sum(deletions) deletions,DATE_FORMAT(commit_date, '%Y-%m') AS
+        date FROM `x_commit`
+        WHERE 1 = 1
+        <if test="con.limit!=null">
+            AND total &lt;= #{con.limit}
+        </if>
+        <if test="con.startDate!=null">
+            AND commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null">
+            AND commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND project_id = #{con.projectId}
+        </if>
+        group by DATE_FORMAT(commit_date,'%Y-%m')
+        ) t2
+        on t2.date = t1.date
+        order by date asc
+    </select>
+    <select id="selectByProject" resultType="com.leyunone.codex.model.vo.CommitVO">
+        SELECT t.total,t.addition,t.deletions,t.project_name,t.project_id FROM ( SELECT SUM(c.total)
+        total,SUM(c.additions) addition,SUM(c.deletions) deletions,p.project_id,p.project_name FROM
+        x_commit c LEFT JOIN x_project p ON
+        c.project_id = p.project_id WHERE 1 = 1
+        <if test="con.limit!=null">
+            AND total &lt;= #{con.limit}
+        </if>
+        <if test="con.startDate!=null and con.startDate!=''">
+            AND c.commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate !=null and con.endDate!=''">
+            AND c.commit_date &lt;= #{con.endDate}
+        </if>
+        GROUP BY c.project_id) t ORDER BY t.total DESC
+        <if test="con.maxNum!=null">
+            limit 0,#{con.maxNum}
+        </if>
+    </select>
+
+    <select id="selectCodeStatistics" resultType="com.leyunone.codex.model.vo.CodeInfoVO">
+        SELECT
+        c.user_id,
+        SUM(c.total) total,
+        SUM(c.deletions) deletions,
+        SUM(c.additions) additions
+        FROM `x_commit` c 
+        WHERE 1 =1
+        <if test="con.startDate !=null and con.startDate !=''">
+            AND c.commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND c.commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND c.project_id = #{con.projectId}
+        </if>
+        <if test="con.limit!=null">
+            AND c.total &lt;= #{con.limit}
+        </if>
+        <if test="con.userIds !=null and con.userIds.size()>0">
+            AND c.user_id IN
+            <foreach item="item" index="index" collection="con.userIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY
+        c.user_id
+    </select>
+
+    <select id="selectProjectNumber" resultType="com.leyunone.codex.model.vo.CodeInfoVO">
+        SELECT
+        c.user_id,
+        project_id
+        FROM `x_commit` c
+        WHERE 1 =1
+        <if test="con.startDate !=null and con.startDate !=''">
+            AND c.commit_date >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND c.commit_date &lt;= #{con.endDate}
+        </if>
+        <if test="con.projectId!=null and con.projectId!=''">
+            AND c.project_id = #{con.projectId}
+        </if>
+        <if test="con.limit!=null">
+            AND c.total &lt;= #{con.limit}
+        </if>
+        <if test="con.userIds !=null and con.userIds.size()>0">
+            AND c.user_id IN
+            <foreach item="item" index="index" collection="con.userIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY
+        c.user_id,project_id
+    </select>
+    
+</mapper>

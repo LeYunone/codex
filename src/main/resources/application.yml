@@ -1,0 +1,68 @@
+server:
+  port: 7878
+  servlet:
+    context-path: /codex
+spring:
+  application:
+    name: leyunone-codex
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/codex?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true&useSSL=false&rewriteBatchedStatements=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.jdbc.Driver
+    druid:
+      initial-size: 20 #连接池初始化大小
+      min-idle: 20 #最小空闲连接数
+      max-active: 50 #最大连接数
+      web-stat-filter:
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*" #不统计这些请求数据
+      stat-view-servlet: #访问监控网页的登录用户名和密码
+        login-username: druid
+        login-password: druid
+      max-wait: 5000
+      time-between-eviction-runs-millis: 15000
+      min-evictable-idle-time-millis: 30000
+      remove-abandoned: true
+      remove-abandoned-timeout-millis: 300000
+      log-abandoned: true
+  mail: #邮箱配置
+    default-encoding: UTF-8
+    # 指定SMTP server使用的协议，默认为: smtp
+    protocol: smtp
+    # 指定SMTP server host.
+    host: xxxx
+    port: 465
+    # 指定SMTP server的用户名.
+    username: xxxx
+    # 指定SMTP server登录密码:
+    password: xxxx
+    # 指定是否在启动时测试邮件服务器连接，默认为false
+    test-connection: false
+    properties:
+      mail.smtp.auth: true
+      # 腾讯企业邮箱 下两个配置必须！！！
+      mail.smtp.ssl.enable: true
+      mail.smtp.socketFactory.class: javax.net.ssl.SSLSocketFactory
+      mail.smtp.socketFactory.port: 465
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 60000
+      mail.smtp.timeout: 60000
+      mail.smtp.writetimeout: 60000
+#xxl:
+#  job:
+#    admin:
+#      addresses: http://127.0.0.1:9999/xxl-job-admin
+#    accessToken:
+#    executor:
+#      appname: codex
+#      address:
+#      ip:
+#      port: 9997
+#      logpath:
+#      logretentiondays: 30
+## 打印日志级别
+### mp日志
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #开启sql日志

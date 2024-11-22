@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.leyunone.codex.dao.mapper.BugMapper">
+    <select id="selectCountAlarmGroupByUser" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT resolve_name FROM (SELECT resolve_name,COUNT(1) count
+        FROM x_bug
+        WHERE create_time >= #{startDate} AND resolve_name not like '%离职%' AND status != '非缺陷'
+
+        GROUP BY resolve_name) a WHERE
+        a.count
+        <if test="conType == 1">
+            =
+        </if>
+        <if test="conType == 2">
+            >=
+        </if>
+        <if test="conType == 3">
+            &lt;=
+        </if>
+        #{bug}
+    </select>
+
+    <select id="selectReopenAlarm" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT resolve_name
+        FROM (SELECT resolve_name,
+                     SUM(CASE WHEN bug_reopen = '1' THEN 1 ELSE 0 END) / COUNT(1) AS reopenScale   
+              FROM x_bug
+              WHERE create_time >= #{startDate}
+                AND resolve_name not like '%离职%'
+                AND status != '非缺陷'
+              GROUP BY resolve_name) a
+        WHERE a.reopenScale * 100 >= #{reopen}
+    </select>
+
+    <select id="selectUserPage" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT resolve_name, count, fixCount,reopenCount FROM ( SELECT resolve_name,COUNT(1) count,
+        SUM(CASE WHEN status = '验证通过' OR status = '非缺陷' THEN 1 ELSE 0 END) AS fixCount,
+        SUM(CASE WHEN bug_reopen = '1' THEN 1 ELSE 0 END) AS reopenCount,
+        SUM( CASE WHEN bug_reopen = '1' THEN 1 ELSE 0 END ) / COUNT(1) AS reopenScale
+        FROM
+        x_bug
+        WHERE resolve_name not like '%离职%'
+        <if test="con.startDate!=null and con.startDate!=''">
+            AND create_time >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND create_time &lt;=#{con.endDate}
+        </if>
+        <if test="con.status!=null and con.status!=''">
+            AND status = #{con.status}
+        </if>
+        <if test="con.realUserName!=null and con.realUserName!=''">
+            AND resolve_name = #{con.realUserName}
+        </if>
+        <if test="con.realUserNames!=null">
+            AND resolve_name IN
+            <foreach item="item" index="index" collection="con.realUserNames" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY resolve_name) as rncfC
+        ORDER BY
+        <if test="con.sortField!=null">
+            <choose>
+                <when test="con.sortField == 1">
+                    <choose>
+                        <when test="con.sortMode!=null and con.sortMode==1">
+                            count
+                        </when>
+                        <otherwise>
+                            count DESC
+                        </otherwise>
+                    </choose>
+                </when>
+                <otherwise>
+                    <choose>
+                        <when test="con.sortMode!=null and con.sortMode==1">
+                            reopenScale
+                        </when>
+                        <otherwise>
+                            reopenScale DESC
+                        </otherwise>
+                    </choose>
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectProjectPage" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT project_name, count, fixCount,reopenCount FROM ( SELECT project_name,COUNT(1) count,
+        SUM(CASE WHEN status = '验证通过' OR status = '非缺陷' THEN 1 ELSE 0 END) AS fixCount,
+        SUM(CASE WHEN bug_reopen = '1' THEN 1 ELSE 0 END) AS reopenCount,
+        SUM( CASE WHEN bug_reopen = '1' THEN 1 ELSE 0 END ) / COUNT(1) AS reopenScale
+        FROM
+        x_bug
+        WHERE
+        1 = 1
+        <if test="con.bugProjectName!=null and con.bugProjectName!=''">
+            AND project_name = #{con.bugProjectName}
+        </if>
+        <if test="con.startDate!=null and con.startDate!=''">
+            AND create_time >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND create_time &lt;=#{con.endDate}
+        </if>
+        <if test="con.status!=null and con.status!=''">
+            AND status = #{con.status}
+        </if>
+        GROUP BY project_name) as rncfC
+        ORDER BY
+        <if test="con.sortField!=null">
+            <choose>
+                <when test="con.sortField == 1">
+                    <choose>
+                        <when test="con.sortMode!=null and con.sortMode==1">
+                            count
+                        </when>
+                        <otherwise>
+                            count DESC
+                        </otherwise>
+                    </choose>
+                </when>
+                <otherwise>
+                    <choose>
+                        <when test="con.sortMode!=null and con.sortMode==1">
+                            reopenScale
+                        </when>
+                        <otherwise>
+                            reopenScale DESC
+                        </otherwise>
+                    </choose>
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="selectBugTopGroupByProjectName" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT count, project_name
+        FROM (SELECT count(1) count, project_name FROM x_bug
+        WHERE 1 =1 AND resolve_name not like '%离职%'
+        <if test="con.startDate!=null and con.startDate!=''">
+            AND create_time >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND create_time &lt;=#{con.endDate}
+        </if>
+        <if test="con.status!=null and con.status!=''">
+            AND status = #{con.status}
+        </if>
+        <if test="con.realUserName!=null and con.realUserName!=''">
+            AND resolve_name = #{con.realUserName}
+        </if>
+        <if test="con.bugReopen!=null and con.bugReopen!=''">
+            AND bug_reopen = #{con.bugReopen}
+        </if>
+        <if test="con.department!=null and con.department!=''">
+            AND department = #{con.department}
+        </if>
+        <if test="con.bugProjectName!=null and con.bugProjectName!=''">
+            AND project_name = #{con.bugProjectName}
+        </if>
+        <if test="con.bugId!=null and con.bugId!=''">
+            AND bug_id LIKE CONCAT('%',#{con.bugId},'%')
+        </if>
+        <if test="con.bugTitle!=null and con.bugTitle!=''">
+            AND bug_title LIKE CONCAT('%',#{con.bugTitle},'%')
+        </if>
+        <if test="con.realUserNames !=null and con.realUserNames.size()>0">
+            AND resolve_name IN
+            <foreach item="item" index="index" collection="con.realUserNames" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY project_name) b
+        ORDER BY b.count DESC
+        LIMIT 0,#{con.size}
+    </select>
+
+    <select id="selectBugTopGroupByUserName" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT count, resolve_name
+        FROM (SELECT count(1) count, resolve_name FROM x_bug
+        WHERE 1 =1 AND resolve_name not like '%离职%'
+        <if test="con.startDate!=null and con.startDate!=''">
+            AND create_time >= #{con.startDate}
+        </if>
+        <if test="con.endDate!=null and con.endDate!=''">
+            AND create_time &lt;=#{con.endDate}
+        </if>
+        <if test="con.status!=null and con.status!=''">
+            AND status = #{con.status}
+        </if>
+        <if test="con.realUserName!=null and con.realUserName!=''">
+            AND resolve_name = #{con.realUserName}
+        </if>
+        <if test="con.bugReopen!=null">
+            AND bug_reopen = #{con.bugReopen}
+        </if>
+        <if test="con.bugProjectName!=null and con.bugProjectName!=''">
+            AND project_name = #{con.bugProjectName}
+        </if>
+        <if test="con.realUserNames !=null and con.realUserNames.size()>0">
+            AND resolve_name IN
+            <foreach item="item" index="index" collection="con.realUserNames" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY resolve_name) b
+        ORDER BY b.count DESC
+        LIMIT 0,#{con.size}
+    </select>
+
+    <select id="selectCountAlarmGroupByProject" resultType="com.leyunone.codex.dao.entry.Bug">
+        SELECT project_name FROM (SELECT project_name,COUNT(1) count
+        FROM x_bug
+        WHERE create_time >= #{startDate} AND resolve_name not like '%离职%' AND status != '非缺陷'
+        AND project_name IN
+        <foreach item="item" index="index" collection="projectNames" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        GROUP BY project_name) a WHERE
+        a.count
+        <if test="conType == 1">
+            =
+        </if>
+        <if test="conType == 2">
+            >=
+        </if>
+        <if test="conType == 3">
+            &lt;=
+        </if>
+        #{bug}
+    </select>
+
+    <select id="selectProjectByUser" resultType="java.lang.String">
+        SELECT project_name
+        FROM x_bug
+        WHERE create_time >= #{startDate}
+        AND resolve_name IN
+        <foreach item="item" index="index" collection="users" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        AND status != '非缺陷'
+        GROUP BY project_name
+    </select>
+</mapper>
