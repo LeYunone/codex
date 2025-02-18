@@ -39,6 +39,7 @@ CREATE TABLE `x_alarm_bot`  (
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `trigger_type` tinyint(1) NULL DEFAULT NULL COMMENT '场景触发类型（1：全部满足时执行 2：满足任一条执行）',
   `alarm_type` tinyint(1) NULL DEFAULT NULL COMMENT '0邮箱 1企微机器人',
+  `next_trigger_time` bigint(20) NULL DEFAULT NULL COMMENT '下一个触发时间',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_bin ROW_FORMAT = Dynamic;
 
